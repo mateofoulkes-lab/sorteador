@@ -104,9 +104,11 @@
 
     .num-btn{
       position:relative;
-      display:grid;
-      place-items:center;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       min-width:0;
+      text-align:center;
       border:1.6px solid rgba(66,153,205,.62);
       border-radius:clamp(7px, 1.8vw, 13px);
       background:rgba(255,255,255,.78);
@@ -114,12 +116,24 @@
       font-weight:900;
       font-size:clamp(.72rem, 4.1vw, 1.27rem);
       line-height:1;
+      letter-spacing:-.02em;
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.85),
         0 2px 6px rgba(8,40,82,.10);
       cursor:pointer;
       user-select:none;
       transition:transform .08s ease, filter .12s ease, box-shadow .12s ease;
+    }
+    .num-label{
+      display:block;
+      width:100%;
+      text-align:center;
+      line-height:1;
+    }
+    .num-btn.three .num-label{
+      font-size:.82em;
+      letter-spacing:-.08em;
+      transform:translateX(-.03em);
     }
     .num-btn:active{ transform:scale(.96); }
     .num-btn:hover{ filter:brightness(1.04); }
@@ -281,7 +295,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKnrZbUop0K3Q6G0aKqgyJ1PqU9kLxQV8zKqJ3A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     const STORAGE_KEY = 'pingu3d_rifa_mundialista_v1';
     const grid = document.getElementById('grid');
@@ -333,7 +346,8 @@
           btn.innerHTML = `<span class="num-small">${n}</span><span class="ball" aria-hidden="true">⚽</span>`;
           btn.title = `${n} - ${data.name} - ${data.paid ? 'Pago' : 'Impago'}`;
         } else {
-          btn.textContent = n;
+          if(n === 100) btn.classList.add('three');
+          btn.innerHTML = `<span class="num-label">${n}</span>`;
           btn.title = `Número ${n} libre`;
         }
 
@@ -443,80 +457,160 @@
 
     function exportPdf(){
       menuPop.classList.remove('open');
-      const jsPDF = window.jspdf && window.jspdf.jsPDF;
-      if(!jsPDF){
-        alert('No se pudo cargar jsPDF. Probá con internet activo o revisá el CDN.');
-        return;
+      try{
+        const blob = buildPdfBlob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'lista-rifa-mundialista.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1200);
+        toast('PDF exportado');
+      } catch(err){
+        console.error(err);
+        alert('No se pudo exportar el PDF. Probá de nuevo.');
+      }
+    }
+
+    function buildPdfBlob(){
+      const W = 595.28, H = 841.89;
+      const margin = 34;
+      const rowH = 18.5;
+      const pages = [];
+      let content = [];
+      let annots = [];
+      let y = 44;
+
+      function pdfText(str){
+        return String(str || '')
+          .normalize('NFC')
+          .replace(/[\\()]/g, '\\$&')
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/[\u201C\u201D]/g, '"')
+          .replace(/[\u2013\u2014]/g, '-')
+          .replace(/[\u2026]/g, '...')
+          .replace(/[^\x09\x0A\x0D\x20-\xFF]/g, '');
       }
 
-      const doc = new jsPDF({ unit:'mm', format:'a4' });
-      const margin = 12;
-      let y = 16;
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      doc.text('Gran rifa mundialista - Lista de números', margin, y);
-      y += 8;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`Exportado: ${new Date().toLocaleString('es-AR')}`, margin, y);
-      y += 9;
-
-      const col = { n: margin, name: 27, phone: 98, paid: 158 };
-      const rowH = 7;
-
-      function header(){
-        doc.setFillColor(8, 42, 85);
-        doc.rect(margin, y - 5, 186, 8, 'F');
-        doc.setTextColor(255,255,255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text('Nº', col.n, y);
-        doc.text('Nombre', col.name, y);
-        doc.text('Teléfono', col.phone, y);
-        doc.text('Estado', col.paid, y);
-        y += 7;
-        doc.setTextColor(0,0,0);
-        doc.setFont('helvetica', 'normal');
+      function escUrl(str){
+        return String(str || '').replace(/[\\()]/g, '\\$&');
       }
 
-      header();
+      function text(x, yTop, str, size=10, font='F1'){
+        const yp = H - yTop;
+        content.push(`BT /${font} ${size} Tf ${x.toFixed(2)} ${yp.toFixed(2)} Td (${pdfText(str)}) Tj ET`);
+      }
+      function colorText(r,g,b){ content.push(`${r} ${g} ${b} rg`); }
+      function fillColor(r,g,b){ content.push(`${r} ${g} ${b} rg`); }
+      function rect(x, yTop, w, h, fill=true){
+        const yp = H - yTop - h;
+        content.push(`${x.toFixed(2)} ${yp.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re ${fill ? 'f' : 'S'}`);
+      }
+      function line(x1, y1Top, x2, y2Top){
+        content.push(`${x1.toFixed(2)} ${(H-y1Top).toFixed(2)} m ${x2.toFixed(2)} ${(H-y2Top).toFixed(2)} l S`);
+      }
+      function addLink(x, yTop, w, h, url){
+        annots.push({ rect:[x, H-yTop-h, x+w, H-yTop], url });
+      }
+      function pushPage(){
+        pages.push({ content: content.join('\n'), annots });
+        content = [];
+        annots = [];
+        y = 44;
+      }
+      function drawHeader(){
+        colorText('0.03','0.16','0.33');
+        text(margin, y, 'Gran rifa mundialista - Lista de numeros', 17, 'F2');
+        y += 18;
+        colorText('0.10','0.22','0.36');
+        text(margin, y, `Exportado: ${new Date().toLocaleString('es-AR')}`, 10);
+        y += 17;
+        fillColor('0.03','0.16','0.33');
+        rect(margin, y - 12, W - margin*2, 15);
+        colorText('1','1','1');
+        text(margin + 4, y - 1, 'Nº', 10, 'F2');
+        text(margin + 46, y - 1, 'Nombre', 10, 'F2');
+        text(margin + 252, y - 1, 'Telefono', 10, 'F2');
+        text(margin + 400, y - 1, 'Estado', 10, 'F2');
+        y += 10;
+      }
+
+      drawHeader();
       for(let n = 1; n <= 100; n++){
-        if(y > 282){ doc.addPage(); y = 16; header(); }
+        if(y > H - 36){
+          pushPage();
+          drawHeader();
+        }
         const data = numbers[n];
-        const isFilled = Boolean(data);
-        if(isFilled){
-          doc.setFillColor(data.paid ? 228 : 255, data.paid ? 249 : 242, data.paid ? 240 : 218);
+        if(data){
+          if(data.paid) fillColor('0.89','0.98','0.94');
+          else fillColor('1','0.95','0.84');
         } else {
-          doc.setFillColor(248, 250, 252);
+          fillColor('0.97','0.98','0.99');
         }
-        doc.rect(margin, y - 5, 186, rowH, 'F');
-        doc.setDrawColor(220, 228, 236);
-        doc.line(margin, y + 2.4, margin + 186, y + 2.4);
-
-        doc.setFont('helvetica', 'bold');
-        doc.text(String(n), col.n, y);
-        doc.setFont('helvetica', 'normal');
-        doc.text(isFilled ? truncate(data.name, 34) : 'Libre', col.name, y);
-
-        if(isFilled && data.phone){
-          const tel = String(data.phone);
+        rect(margin, y - 12, W - margin*2, rowH);
+        content.push('0.86 0.89 0.93 RG 0.4 w');
+        line(margin, y - 12 + rowH, W - margin, y - 12 + rowH);
+        colorText('0','0','0');
+        text(margin + 4, y, String(n), 10, 'F2');
+        if(data){
+          text(margin + 46, y, truncate(data.name, 34), 10);
+          const tel = String(data.phone || '');
           const clean = normalizePhone(tel).replace(/^\+/, '');
-          doc.setTextColor(0, 75, 160);
-          doc.textWithLink(truncate(tel, 23), col.phone, y, { url: `https://wa.me/${clean}` });
-          doc.setTextColor(0,0,0);
+          if(tel){
+            colorText('0','0.25','0.65');
+            text(margin + 252, y, truncate(tel, 22), 10);
+            if(clean) addLink(margin + 252, y - 10, 120, 12, `https://wa.me/${clean}`);
+            colorText('0','0','0');
+          } else {
+            text(margin + 252, y, '-', 10);
+          }
+          text(margin + 400, y, data.paid ? 'Pago' : 'Impago', 10, 'F2');
         } else {
-          doc.text('-', col.phone, y);
+          text(margin + 46, y, 'Libre', 10);
+          text(margin + 252, y, '-', 10);
+          text(margin + 400, y, 'Libre', 10, 'F2');
         }
-
-        doc.setFont('helvetica', 'bold');
-        doc.text(isFilled ? (data.paid ? 'Pago' : 'Impago') : 'Libre', col.paid, y);
-        doc.setFont('helvetica', 'normal');
         y += rowH;
       }
+      pushPage();
 
-      doc.save('lista-rifa-mundialista.pdf');
+      const objects = [];
+      function addObj(body){ objects.push(body); return objects.length; }
+      const catalogId = addObj(null);
+      const pagesId = addObj(null);
+      const fontId = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+      const fontBoldId = addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+      const pageIds = [];
+
+      pages.forEach(pg => {
+        const stream = pg.content + '\n';
+        const contentId = addObj(`<< /Length ${stream.length} >>\nstream\n${stream}endstream`);
+        const annotIds = pg.annots.map(a => addObj(`<< /Type /Annot /Subtype /Link /Rect [${a.rect.map(v=>v.toFixed(2)).join(' ')}] /Border [0 0 0] /A << /S /URI /URI (${escUrl(a.url)}) >> >>`));
+        const annotsRef = annotIds.length ? `/Annots [${annotIds.map(id => `${id} 0 R`).join(' ')}]` : '';
+        const pageId = addObj(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${fontId} 0 R /F2 ${fontBoldId} 0 R >> >> /Contents ${contentId} 0 R ${annotsRef} >>`);
+        pageIds.push(pageId);
+      });
+
+      objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+      objects[pagesId - 1] = `<< /Type /Pages /Count ${pageIds.length} /Kids [${pageIds.map(id => `${id} 0 R`).join(' ')}] >>`;
+
+      let pdf = '%PDF-1.4\n%âãÏÓ\n';
+      const offsets = [0];
+      objects.forEach((obj, i) => {
+        offsets[i+1] = pdf.length;
+        pdf += `${i+1} 0 obj\n${obj}\nendobj\n`;
+      });
+      const xref = pdf.length;
+      pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+      for(let i=1; i<=objects.length; i++) pdf += `${String(offsets[i]).padStart(10,'0')} 00000 n \n`;
+      pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+
+      const bytes = new Uint8Array(pdf.length);
+      for(let i=0; i<pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 255;
+      return new Blob([bytes], { type:'application/pdf' });
     }
 
     function truncate(str, max){
