@@ -11,12 +11,12 @@ window.RIFA_APP_VERSION = '2.0.0-firebase-pwa';
 window.RIFA_FIREBASE_ENABLED = true;
 
 window.RIFA_FIREBASE_CONFIG = {
-  apiKey: 'PEGAR_API_KEY',
-  authDomain: 'PEGAR_PROJECT_ID.firebaseapp.com',
-  projectId: 'PEGAR_PROJECT_ID',
-  storageBucket: 'PEGAR_PROJECT_ID.firebasestorage.app',
-  messagingSenderId: 'PEGAR_MESSAGING_SENDER_ID',
-  appId: 'PEGAR_APP_ID'
+  apiKey: "AIzaSyCVP7TqVGFkvqgV36j5WZ67g3AHk8V4-ik",
+  authDomain: "sorteador-2bfd6.firebaseapp.com",
+  projectId: "sorteador-2bfd6",
+  storageBucket: "sorteador-2bfd6.firebasestorage.app",
+  messagingSenderId: "466509575088",
+  appId: "1:466509575088:web:2059ac05ba55be3d519c75"
 };
 
 // Nombre de la colección donde se guardan los números.
