@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reglas simples para prueba rápida: cualquier persona con el link puede leer y escribir.
+    // Para producción conviene activar Authentication y restringir escritura a tu usuario.
+    match /rifa_mundialista_2026_numeros/{numero} {
+      allow read, write: if true;
+    }
+  }
+}
