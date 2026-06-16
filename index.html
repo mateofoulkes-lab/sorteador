@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Gran rifa mundialista - Pingüé 3D</title>
+  <meta name="theme-color" content="#06345f" />
+  <style>
+    :root{
+      --navy:#092a55;
+      --blue:#0b4e86;
+      --sky:#8fd3ff;
+      --gold:#d99a22;
+      --gold2:#f3c766;
+      --paper:#fffaf0;
+      --paid:#18b47b;
+      --unpaid:#f4a62a;
+      --danger:#c53030;
+      --shadow:0 14px 34px rgba(0,0,0,.20);
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      min-height:100svh;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(circle at top, rgba(141,211,255,.45), transparent 28rem),
+        linear-gradient(180deg, #e7f7ff, #f9fbff 55%, #d9efff);
+      font-family:var(--font);
+      color:var(--navy);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .phone-shell{
+      width:min(100vw, 480px);
+      aspect-ratio:941/1672;
+      position:relative;
+      overflow:hidden;
+      background-image:url("assets/rifa-bg.png");
+      background-size:100% 100%;
+      background-repeat:no-repeat;
+      border-radius:clamp(12px, 2.3vw, 24px);
+      box-shadow:var(--shadow);
+      isolation:isolate;
+    }
+
+    /* Botón invisible sobre las tres rayitas del diseño */
+    .menu-hit{
+      position:absolute;
+      top:2.5%;
+      right:4.0%;
+      width:9.2%;
+      height:4.7%;
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      z-index:20;
+    }
+
+    .menu-pop{
+      position:absolute;
+      top:7.2%;
+      right:4.2%;
+      width:42%;
+      display:none;
+      z-index:30;
+      padding:.45rem;
+      border:1.5px solid rgba(217,154,34,.8);
+      border-radius:14px;
+      background:rgba(255,255,255,.97);
+      box-shadow:0 14px 28px rgba(6,24,50,.22);
+      backdrop-filter: blur(8px);
+    }
+    .menu-pop.open{ display:block; }
+    .menu-pop button{
+      width:100%;
+      border:0;
+      border-radius:11px;
+      padding:.75rem .65rem;
+      color:#fff;
+      font-weight:900;
+      background:linear-gradient(180deg, #0e5f9d, #06345f);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+      cursor:pointer;
+    }
+
+    .grid-panel{
+      position:absolute;
+      left:5.4%;
+      top:52.05%;
+      width:89.2%;
+      height:38.7%;
+      z-index:10;
+      padding:clamp(8px, 2.2vw, 14px);
+      display:grid;
+      grid-template-columns:repeat(10, 1fr);
+      grid-auto-rows:1fr;
+      gap:clamp(4px, 1vw, 8px);
+    }
+
+    .num-btn{
+      position:relative;
+      display:grid;
+      place-items:center;
+      min-width:0;
+      border:1.6px solid rgba(66,153,205,.62);
+      border-radius:clamp(7px, 1.8vw, 13px);
+      background:rgba(255,255,255,.78);
+      color:#07284f;
+      font-weight:900;
+      font-size:clamp(.72rem, 4.1vw, 1.27rem);
+      line-height:1;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.85),
+        0 2px 6px rgba(8,40,82,.10);
+      cursor:pointer;
+      user-select:none;
+      transition:transform .08s ease, filter .12s ease, box-shadow .12s ease;
+    }
+    .num-btn:active{ transform:scale(.96); }
+    .num-btn:hover{ filter:brightness(1.04); }
+
+    .num-btn.occupied{
+      border-color:rgba(9,42,85,.25);
+      color:rgba(7,40,79,.55);
+      overflow:hidden;
+    }
+    .num-btn.paid{
+      background:linear-gradient(180deg, rgba(30,184,124,.36), rgba(255,255,255,.82));
+      box-shadow:inset 0 0 0 2px rgba(30,184,124,.22), 0 3px 8px rgba(7,92,60,.20);
+    }
+    .num-btn.unpaid{
+      background:linear-gradient(180deg, rgba(246,180,67,.42), rgba(255,255,255,.82));
+      box-shadow:inset 0 0 0 2px rgba(246,180,67,.24), 0 3px 8px rgba(148,92,7,.18);
+    }
+    .num-small{
+      position:absolute;
+      top:5px;
+      left:6px;
+      font-size:.52em;
+      opacity:.70;
+      z-index:2;
+    }
+    .ball{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      font-size:clamp(1.05rem, 5.7vw, 1.8rem);
+      filter:drop-shadow(0 2px 2px rgba(0,0,0,.22));
+      z-index:3;
+    }
+
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      display:none;
+      place-items:center;
+      z-index:100;
+      background:rgba(3,14,28,.56);
+      padding:18px;
+    }
+    .modal-backdrop.open{ display:grid; }
+
+    .modal{
+      width:min(94vw, 420px);
+      border-radius:20px;
+      border:2px solid rgba(217,154,34,.78);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,250,240,.98));
+      box-shadow:0 24px 70px rgba(0,0,0,.36);
+      overflow:hidden;
+    }
+    .modal-head{
+      padding:16px 18px;
+      color:white;
+      background:linear-gradient(180deg, #0a5794, #062c59);
+      font-weight:950;
+      font-size:1.18rem;
+      letter-spacing:.2px;
+    }
+    .modal-body{ padding:18px; }
+    .modal p{ margin:.2rem 0 1rem; color:#173a63; }
+    label.field{
+      display:block;
+      margin:.8rem 0;
+      font-weight:850;
+      color:#0b2c58;
+    }
+    input[type="text"], input[type="tel"]{
+      width:100%;
+      margin-top:.32rem;
+      border:1.5px solid rgba(58,136,190,.45);
+      border-radius:12px;
+      padding:.78rem .85rem;
+      font-size:1rem;
+      color:#092a55;
+      background:#fff;
+      outline:none;
+    }
+    input[type="text"]:focus, input[type="tel"]:focus{
+      border-color:#1682ca;
+      box-shadow:0 0 0 3px rgba(22,130,202,.14);
+    }
+    .check-row{
+      display:flex;
+      align-items:center;
+      gap:.65rem;
+      margin:1rem 0 .35rem;
+      font-weight:900;
+      color:#092a55;
+    }
+    .check-row input{ width:1.2rem; height:1.2rem; accent-color:var(--paid); }
+
+    .actions{
+      display:flex;
+      gap:.65rem;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      margin-top:1.15rem;
+    }
+    .btn{
+      border:0;
+      border-radius:12px;
+      padding:.75rem 1rem;
+      font-weight:950;
+      cursor:pointer;
+      color:#092a55;
+      background:#eef6ff;
+      box-shadow:inset 0 0 0 1.5px rgba(9,42,85,.12);
+    }
+    .btn.primary{ color:white; background:linear-gradient(180deg, #1682ca, #064174); }
+    .btn.danger{ color:white; background:linear-gradient(180deg, #e45656, #a51e1e); }
+    .hint{ font-size:.9rem; color:#46627f; }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%) translateY(20px);
+      z-index:200;
+      opacity:0;
+      pointer-events:none;
+      transition:.18s ease;
+      padding:.75rem 1rem;
+      border-radius:999px;
+      color:#fff;
+      background:rgba(5,40,78,.94);
+      box-shadow:0 12px 28px rgba(0,0,0,.25);
+      font-weight:850;
+      text-align:center;
+      max-width:min(92vw, 420px);
+    }
+    .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+    @media (min-width:560px){
+      .phone-shell{ width:min(92vh * 941 / 1672, 480px); }
+      .grid-panel{ padding:13px; gap:7px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="phone-shell" aria-label="Gran rifa mundialista">
+    <button class="menu-hit" id="menuBtn" aria-label="Abrir menú"></button>
+    <div class="menu-pop" id="menuPop">
+      <button type="button" id="exportBtn">Exportar lista PDF</button>
+    </div>
+    <section class="grid-panel" id="grid" aria-label="Grilla de números del 1 al 100"></section>
+  </main>
+
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-head" id="modalTitle"></div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKnrZbUop0K3Q6G0aKqgyJ1PqU9kLxQV8zKqJ3A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    const STORAGE_KEY = 'pingu3d_rifa_mundialista_v1';
+    const grid = document.getElementById('grid');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const menuBtn = document.getElementById('menuBtn');
+    const menuPop = document.getElementById('menuPop');
+    const exportBtn = document.getElementById('exportBtn');
+    const toastEl = document.getElementById('toast');
+
+    let numbers = loadData();
+
+    function loadData(){
+      try{
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch(_err){
+        return {};
+      }
+    }
+
+    function saveData(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(numbers));
+    }
+
+    function normalizePhone(phone){
+      return String(phone || '').replace(/[^0-9+]/g, '');
+    }
+
+    function toast(message){
+      toastEl.textContent = message;
+      toastEl.classList.add('show');
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    function renderGrid(){
+      grid.innerHTML = '';
+      for(let n = 1; n <= 100; n++){
+        const data = numbers[n];
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'num-btn';
+        btn.dataset.num = n;
+        btn.setAttribute('aria-label', data ? `Número ${n} ocupado por ${data.name}` : `Número ${n} libre`);
+
+        if(data){
+          btn.classList.add('occupied', data.paid ? 'paid' : 'unpaid');
+          btn.innerHTML = `<span class="num-small">${n}</span><span class="ball" aria-hidden="true">⚽</span>`;
+          btn.title = `${n} - ${data.name} - ${data.paid ? 'Pago' : 'Impago'}`;
+        } else {
+          btn.textContent = n;
+          btn.title = `Número ${n} libre`;
+        }
+
+        btn.addEventListener('click', () => data ? openOccupied(n) : openFree(n));
+        grid.appendChild(btn);
+      }
+    }
+
+    function openModal(title, html){
+      modalTitle.textContent = title;
+      modalBody.innerHTML = html;
+      modalBackdrop.classList.add('open');
+      const firstInput = modalBody.querySelector('input:not([type="checkbox"])');
+      if(firstInput) setTimeout(() => firstInput.focus(), 80);
+    }
+
+    function closeModal(){
+      modalBackdrop.classList.remove('open');
+      modalBody.innerHTML = '';
+    }
+
+    function openFree(n){
+      openModal(`Número ${n}`, `
+        <p>¿Quién compró el número <strong>${n}</strong>?</p>
+        <label class="field">Nombre
+          <input id="buyerName" type="text" autocomplete="name" placeholder="Ej: Juan Pérez">
+        </label>
+        <label class="field">Teléfono
+          <input id="buyerPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej: 3364...">
+        </label>
+        <label class="check-row">
+          <input id="buyerPaid" type="checkbox"> Pago
+        </label>
+        <div class="actions">
+          <button class="btn" id="cancelBtn" type="button">Cancelar</button>
+          <button class="btn primary" id="saveBtn" type="button">Guardar</button>
+        </div>
+      `);
+
+      document.getElementById('cancelBtn').addEventListener('click', closeModal);
+      document.getElementById('saveBtn').addEventListener('click', () => {
+        const name = document.getElementById('buyerName').value.trim();
+        const phone = document.getElementById('buyerPhone').value.trim();
+        const paid = document.getElementById('buyerPaid').checked;
+
+        if(!name){ alert('Falta el nombre.'); return; }
+        if(!phone){ alert('Falta el teléfono.'); return; }
+
+        numbers[n] = { name, phone, paid, updatedAt: new Date().toISOString() };
+        saveData();
+        renderGrid();
+        closeModal();
+        toast(`Número ${n} guardado`);
+      });
+    }
+
+    function openOccupied(n){
+      const data = numbers[n];
+      const phoneClean = normalizePhone(data.phone);
+      const phoneLink = phoneClean ? `<a href="https://wa.me/${phoneClean.replace(/^\+/, '')}" target="_blank" rel="noopener">${data.phone}</a>` : data.phone;
+      openModal(`Número ${n} ocupado`, `
+        <p>Número actualmente comprado por:</p>
+        <p><strong>${escapeHtml(data.name)}</strong><br>Tel: ${phoneLink}</p>
+        <label class="check-row">
+          <input id="paidToggle" type="checkbox" ${data.paid ? 'checked' : ''}> Pago
+        </label>
+        <p class="hint">Estado actual: <strong>${data.paid ? 'Pago' : 'Impago'}</strong></p>
+        <div class="actions">
+          <button class="btn danger" id="deleteBtn" type="button">Eliminar</button>
+          <button class="btn" id="cancelBtn" type="button">Cancelar</button>
+        </div>
+      `);
+
+      document.getElementById('cancelBtn').addEventListener('click', closeModal);
+      document.getElementById('deleteBtn').addEventListener('click', () => {
+        if(confirm(`¿Seguro que querés liberar el número ${n}?`)){
+          delete numbers[n];
+          saveData();
+          renderGrid();
+          closeModal();
+          toast(`Número ${n} liberado`);
+        }
+      });
+
+      const paidToggle = document.getElementById('paidToggle');
+      paidToggle.addEventListener('change', () => {
+        const nextState = paidToggle.checked;
+        const msg = nextState
+          ? `¿Querés marcar el número ${n} como PAGO?`
+          : `¿Querés marcar el número ${n} como IMPAGO?`;
+        if(confirm(msg)){
+          numbers[n].paid = nextState;
+          numbers[n].updatedAt = new Date().toISOString();
+          saveData();
+          renderGrid();
+          closeModal();
+          toast(`Número ${n}: ${nextState ? 'pago' : 'impago'}`);
+        } else {
+          paidToggle.checked = !nextState;
+        }
+      });
+    }
+
+    function escapeHtml(str){
+      return String(str || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+
+    function exportPdf(){
+      menuPop.classList.remove('open');
+      const jsPDF = window.jspdf && window.jspdf.jsPDF;
+      if(!jsPDF){
+        alert('No se pudo cargar jsPDF. Probá con internet activo o revisá el CDN.');
+        return;
+      }
+
+      const doc = new jsPDF({ unit:'mm', format:'a4' });
+      const margin = 12;
+      let y = 16;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text('Gran rifa mundialista - Lista de números', margin, y);
+      y += 8;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Exportado: ${new Date().toLocaleString('es-AR')}`, margin, y);
+      y += 9;
+
+      const col = { n: margin, name: 27, phone: 98, paid: 158 };
+      const rowH = 7;
+
+      function header(){
+        doc.setFillColor(8, 42, 85);
+        doc.rect(margin, y - 5, 186, 8, 'F');
+        doc.setTextColor(255,255,255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('Nº', col.n, y);
+        doc.text('Nombre', col.name, y);
+        doc.text('Teléfono', col.phone, y);
+        doc.text('Estado', col.paid, y);
+        y += 7;
+        doc.setTextColor(0,0,0);
+        doc.setFont('helvetica', 'normal');
+      }
+
+      header();
+      for(let n = 1; n <= 100; n++){
+        if(y > 282){ doc.addPage(); y = 16; header(); }
+        const data = numbers[n];
+        const isFilled = Boolean(data);
+        if(isFilled){
+          doc.setFillColor(data.paid ? 228 : 255, data.paid ? 249 : 242, data.paid ? 240 : 218);
+        } else {
+          doc.setFillColor(248, 250, 252);
+        }
+        doc.rect(margin, y - 5, 186, rowH, 'F');
+        doc.setDrawColor(220, 228, 236);
+        doc.line(margin, y + 2.4, margin + 186, y + 2.4);
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(String(n), col.n, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(isFilled ? truncate(data.name, 34) : 'Libre', col.name, y);
+
+        if(isFilled && data.phone){
+          const tel = String(data.phone);
+          const clean = normalizePhone(tel).replace(/^\+/, '');
+          doc.setTextColor(0, 75, 160);
+          doc.textWithLink(truncate(tel, 23), col.phone, y, { url: `https://wa.me/${clean}` });
+          doc.setTextColor(0,0,0);
+        } else {
+          doc.text('-', col.phone, y);
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(isFilled ? (data.paid ? 'Pago' : 'Impago') : 'Libre', col.paid, y);
+        doc.setFont('helvetica', 'normal');
+        y += rowH;
+      }
+
+      doc.save('lista-rifa-mundialista.pdf');
+    }
+
+    function truncate(str, max){
+      str = String(str || '');
+      return str.length > max ? str.slice(0, max - 1) + '…' : str;
+    }
+
+    menuBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      menuPop.classList.toggle('open');
+    });
+    exportBtn.addEventListener('click', exportPdf);
+    document.addEventListener('click', (ev) => {
+      if(!menuPop.contains(ev.target) && ev.target !== menuBtn){
+        menuPop.classList.remove('open');
+      }
+    });
+    modalBackdrop.addEventListener('click', (ev) => {
+      if(ev.target === modalBackdrop) closeModal();
+    });
+    window.addEventListener('keydown', (ev) => {
+      if(ev.key === 'Escape') closeModal();
+    });
+
+    renderGrid();
+  </script>
+</body>
+</html>
